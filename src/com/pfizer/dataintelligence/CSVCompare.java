@@ -4,16 +4,17 @@ import java.util.List;
 import java.util.Map;
 
 import com.pfizer.dataintelligence.adapter.ReadFile;
+import com.pfizer.dataintelligence.adapter.WriteFile;
 import com.pfizer.dataintelligence.config.ConfigBean;
 import com.pfizer.dataintelligence.domain.CSVEntry;
 
 public class CSVCompare {
 
-	public static String fileRootPath; // = "C://csvs";
+	public static String fileRootPath = "D:\\sap-di\\data-reconcile";
 	
 	public static void main(String[] args) throws Exception {
 		
-		fileRootPath = new java.io.File(".").getCanonicalPath();
+		//fileRootPath = new java.io.File(".").getCanonicalPath();
 		System.out.println(fileRootPath);
 		
 		//--load properties
@@ -26,7 +27,9 @@ public class CSVCompare {
 		System.out.println("Source entries > " + sourceEntries.size());
 		List<CSVEntry> targetEntries = new ReadFile().getRecords(fileRootPath.concat("//").concat(ConfigBean.getInstance().targetDirRelativePath));
 		System.out.println("Target entries > " + targetEntries.size());
-		
+
+//		WriteFile.write(fileRootPath, sourceEntries, targetEntries);
+
 		System.out.println("Reduce called..");		
 		Map<String, CSVEntry> source = ExecutionController.reduce(sourceEntries, new SLTReduce());
 		System.out.println("Source entries after reduction > " + source.size());
