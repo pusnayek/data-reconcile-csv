@@ -6,12 +6,19 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.pfizer.dataintelligence.config.ConfigBean;
 
 public class CSVEntry {
 	
 	public Map<String, String> entries = new HashMap<String, String>();
+	
+	public static CSVEntry create(final List<String> headers, List<String> tokens) throws IllegalArgumentException {
+		CSVEntry entry = new CSVEntry(headers, tokens);
+		entry.checkKeys();
+		return entry;
+	}
 	
 	public CSVEntry(final List<String> headers, List<String> tokens) {
 		List<String> ignoreColumns = ConfigBean.getInstance().ignoreColumns;
@@ -20,33 +27,25 @@ public class CSVEntry {
 			String fieldName = headers.get(index);
 			if(!ignoreColumns.contains(fieldName)) {
 				//String token = (index < _token) ? tokens.get(index) : null;
+//				if(index == _token) {
+//					System.out.println("Index out of bounds > " + this.getKeysConcatenated());
+//					break;
+//				}
 				String token = tokens.get(index);
 				entries.put(fieldName.trim(), token);
-				
-				if("MANDT".equalsIgnoreCase(fieldName) && !token.equalsIgnoreCase("226")) {
-					throw new RuntimeException("Entry is not read well");
-				}
 			}
 		}
 		//-check keys
 		this.checkKeys();
 	}
-	
-	public void checkKeys() {
+	//-check primary keys
+	public void checkKeys()  throws IllegalArgumentException {
 		List<String> keyColumns = ConfigBean.getInstance().keyColumns;
-		/*
-		for (Iterator iterator = entries.keySet().iterator(); iterator.hasNext();) {
-			String string = (String) iterator.next();
-			for(int i = 0; i < string.length(); i++) {
-				System.out.print((int)string.charAt(i) + "-");
-			}
-			System.out.println(" > " + string + " HashCode > " + string.hashCode() + " Length >" + string.length());
-		}*/
 		for (Iterator<String> iterator = keyColumns.iterator(); iterator.hasNext();) {
 			String keyName = iterator.next();
 			String thisFieldValue = this.getField(keyName.trim());			
 			if(thisFieldValue == null || thisFieldValue.length() == 0) {
-				throw new RuntimeException("Error as key is null > " + keyName + " HashCode > " + keyName.hashCode() + " Length > " + keyName.length());
+				throw new IllegalArgumentException("Error as key is null > " + keyName);
 			}
 		}
 	}
@@ -59,9 +58,8 @@ public class CSVEntry {
 			String keyName = iterator.next();
 			String thisFieldValue = this.getField(keyName);			
 			if(thisFieldValue == null || thisFieldValue.length() == 0) {
-				throw new RuntimeException("Error as key is null > " + keyName);
+//				throw new RuntimeException("Error as key is null > " + keyName);
 			}
-//			System.out.print(keyName + " > " + thisFieldValue);
 			keyBuff.append(thisFieldValue.replaceFirst("^0+(?!$)", ""));
 		}
 		
@@ -81,23 +79,23 @@ public class CSVEntry {
 		return map;
 	}
 	
-	private String getField(String fieldName) {
+	public String getField(String fieldName) {
 		String fieldValue = entries.get(fieldName);
 		fieldValue = fieldValue == null ? "" : fieldValue;
 		return fieldValue;
 	}
 	
-	public boolean compareKeys(CSVEntry anotherEntry) {
+	public boolean compareKeys(CSVEntry anotherEntry) throws Exception {
 		return compareFields(anotherEntry, ConfigBean.getInstance().keyColumns.iterator());
 	}
 	
-	public boolean compare(CSVEntry anotherEntry) {
+	public boolean compare(CSVEntry anotherEntry) throws Exception {
 		return compareFields(anotherEntry, this.entries.keySet().iterator());
 	}
 	
-	private boolean compareFields(CSVEntry anotherEntry, Iterator<String> columns) {
-		boolean equals = true;
+	private boolean compareFields(CSVEntry anotherEntry, Iterator<String> columns) throws Exception{
 		List<String> dateColumns = ConfigBean.getInstance().dateColumns;
+		List<String> timeColumns = ConfigBean.getInstance().timeColumns;
 		
 		for (; columns.hasNext();) {
 			String fieldName = (String) columns.next();
@@ -111,37 +109,32 @@ public class CSVEntry {
 				//-further checks
 				if(dateColumns.contains(fieldName)) {
 					if(!dateEqual(thisFieldValue, thatFieldValue)) {
-						System.out.println("Date > " + fieldName + " > " + thisFieldValue + " > " + thatFieldValue);
-						equals = false;
+						throw new Exception("Date comparison for field name ( " + fieldName + " )> Source value: " + thisFieldValue + " & Target value: " + thatFieldValue);
+					}
+				} else if(timeColumns.contains(fieldName)) {
+					if(!timeEqual(thisFieldValue, thatFieldValue)) {
+						throw new Exception("Time comparison for field name ( " + fieldName + " )> Source value: " + thisFieldValue + " & Target value: " + thatFieldValue);
 					}
 				} else if(ConfigBean.getInstance().numberPattern.matcher(thisFieldValue).matches()
 							|| ConfigBean.getInstance().numberPattern.matcher(thatFieldValue).matches()) {
-					try {
-						double sourceDoubleValue = thisFieldValue.length() == 0 ? 0 : 
-							ConfigBean.getInstance().numberFormat.parse(thisFieldValue).doubleValue();
-						double targetDoubleValue = thatFieldValue.length() == 0 ? 0 : 
-							ConfigBean.getInstance().numberFormat.parse(thatFieldValue).doubleValue();
-						double valueDifference =  sourceDoubleValue - targetDoubleValue;
-						if(valueDifference > 0.01) {
-							System.out.println("Double > " + fieldName + " > " + sourceDoubleValue + " > " + targetDoubleValue 
-										+ " Difference > "  + valueDifference);
-							equals = false;
-						}
-					} catch (ParseException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+					double sourceDoubleValue = thisFieldValue.length() == 0 ? 0 : 
+						ConfigBean.getInstance().numberFormat.parse(thisFieldValue).doubleValue();
+					double targetDoubleValue = thatFieldValue.length() == 0 ? 0 : 
+						ConfigBean.getInstance().numberFormat.parse(thatFieldValue).doubleValue();
+					double valueDifference =  sourceDoubleValue - targetDoubleValue;
+					if(valueDifference > 0.01) {
+						throw new Exception("Numeric comparison for field name ( " + fieldName + " )> Source value: " + thisFieldValue + " & Target value: " + thatFieldValue);
 					}
 				} else {
-					System.out.println("String > " + fieldName + " > " + thisFieldValue + " > " + thatFieldValue);
-					equals = false;
+					throw new Exception("String comparison for field name ( " + fieldName + " )> Source value: " + thisFieldValue + " & Target value: " + thatFieldValue);
 				}
 			}
 		}
 		
-		return equals;		
+		return true;		
 	}
 	
-	public static boolean dateEqual(String sourceValue, String targetValue) {
+	public static boolean dateEqual(String sourceValue, String targetValue) throws ParseException {
 		String sourceDateString = (sourceValue == null || sourceValue.trim().length() == 0 
 				|| "00/00/0000".equalsIgnoreCase(sourceValue) 
 				|| "99/99/9999".equalsIgnoreCase(sourceValue)) ? "" : sourceValue;
@@ -156,16 +149,32 @@ public class CSVEntry {
 			return false;
 		}
 
-		try {
-			Date sourceDate = ConfigBean.getInstance().srcDateFormatter.parse(sourceDateString);
-			Date targetDate = ConfigBean.getInstance().trgDateFormatter.parse(targetDateString);
-//			System.out.println("Date > " + sourceDateString + " > " + sourceDate + " > " + targetDateString + " > " + targetDate);
-			if(sourceDate.equals(targetDate)) {
-				return true;
-			}
-		} catch (ParseException e) {
-			e.printStackTrace();
+		Date sourceDate = ConfigBean.getInstance().srcDateFormatter.parse(sourceDateString);
+		Date targetDate = ConfigBean.getInstance().trgDateFormatter.parse(targetDateString);
+		if(sourceDate.equals(targetDate)) {
+			return true;
 		}
+
+		return false;
+	}
+
+	public static boolean timeEqual(String sourceValue, String targetValue) throws ParseException {
+		String sourceDateString = (sourceValue == null || sourceValue.trim().length() == 0  
+				|| "99:99:99".equalsIgnoreCase(sourceValue)) ? "00:00:00" : sourceValue;
+		String targetDateString = (targetValue == null || targetValue.trim().length() == 0   
+				|| "99:99:99.999".equalsIgnoreCase(targetValue)) ? "00:00:00.000" : targetValue;
+		
+		if(sourceDateString.equalsIgnoreCase(targetDateString)) {
+			return true;
+		}
+
+		//-source time and target time
+		String sourceTImeFormatted = ConfigBean.timeFormatter.format(ConfigBean.getInstance().srcTimeFormatter.parse(sourceDateString));
+		String targetTImeFormatted = ConfigBean.timeFormatter.format(ConfigBean.getInstance().trgTimeFormatter.parse(targetDateString));
+		if(sourceTImeFormatted.equals(targetTImeFormatted)) {
+			return true;
+		}
+
 		return false;
 	}
 	
@@ -177,13 +186,35 @@ public class CSVEntry {
 		}
 		return buf.toString();
 	}
+	
+	public String getFieldsInfo(Iterator<String> headers) {
+		StringBuffer buf = new StringBuffer();
+		for (; headers.hasNext();) {
+			String keyName = headers.next();
+			String thisFieldValue = this.getField(keyName);	
+			buf.append("\"");
+			buf.append(thisFieldValue);
+			buf.append("\"");
+			buf.append(",");
+		}
+		return buf.toString();
+	}	
+	
+	public Set<String> getHeaderFields() {
+		return this.entries.keySet();
+	}
 
 	@Override
 	public String toString() {
 		StringBuffer buf = new StringBuffer();
 		for (Iterator<String> columns = this.entries.keySet().iterator(); columns.hasNext();) {
-			String thisFieldValue = this.getField(columns.next());		
+			String keyName = columns.next();
+			String thisFieldValue = this.getField(keyName);	
+			buf.append(keyName);
+			buf.append("=");
+			buf.append("\"");
 			buf.append(thisFieldValue);
+			buf.append("\"");
 			buf.append(",");
 		}
 		return buf.toString();
