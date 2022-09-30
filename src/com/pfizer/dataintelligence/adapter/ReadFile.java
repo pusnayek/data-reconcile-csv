@@ -65,7 +65,13 @@ public class ReadFile {
 				// each line of // the file, using a comma as the delimiter 
 				String[] attributes = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1); 
 				// adding Entry into ArrayList 
-				entries.add(new CSVEntry(headers, Arrays.asList(attributes)));  
+				try {
+					CSVEntry entry = CSVEntry.create(headers, Arrays.asList(attributes));
+					entries.add(entry);  
+				} catch(IllegalArgumentException e) {
+					System.out.println("Error at line  " + lineNum + ": " + e.getMessage());
+				}
+				
 				// if end of file reached, line would be null 
 				try {
 					line = br.readLine();
