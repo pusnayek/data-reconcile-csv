@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import com.pfizer.dataintelligence.domain.CSVEntry;
 
@@ -33,6 +34,7 @@ public class WriteFile {
 	    File file = new File(filePath);
 	    BufferedWriter bufWriter = null;
 	    boolean firstTime = true;
+	    Set<String> headers = null;
 	    try {
 		    bufWriter = Files.newBufferedWriter(Paths.get(file.getAbsolutePath()), StandardCharsets.UTF_8, StandardOpenOption.CREATE);
 		    
@@ -40,10 +42,11 @@ public class WriteFile {
 				 CSVEntry csvEntry = iterator.next();
 				 if(firstTime) {
 					 bufWriter.write(csvEntry.getHeaders());
+					 headers = csvEntry.getHeaderFields();
 					 bufWriter.newLine();
 					 firstTime = false;
 				 }
-				 bufWriter.write(csvEntry.toString());
+				 bufWriter.write(csvEntry.getFieldsInfo(headers.iterator()));
 				 bufWriter.newLine();
 			}
 	    }
