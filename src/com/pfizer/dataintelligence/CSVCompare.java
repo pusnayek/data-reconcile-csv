@@ -10,12 +10,12 @@ import com.pfizer.dataintelligence.domain.CSVEntry;
 
 public class CSVCompare {
 
-	public static String fileRootPath = "D:\\sap-di\\data-reconcile\\AFPO";
+//	public static String fileRootPath = "D:\\sap-di\\data-reconcile\\AFPO";
 	
 	public static void main(String[] args) throws Exception {
 		
-		//fileRootPath = new java.io.File(".").getCanonicalPath();
-		//System.out.println(fileRootPath);
+		String fileRootPath = new java.io.File(".").getCanonicalPath();
+		System.out.println("Detected root folder > " + fileRootPath);
 		
 		//--load properties
 		System.out.println("Reading properties file..");		
