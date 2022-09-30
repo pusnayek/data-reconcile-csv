@@ -20,10 +20,12 @@ public class SLTReduce implements IReduce {
 		if(storedEntry != null) {
 			String operation = this.getOperation(entry);
 			if(DELETE.equalsIgnoreCase(operation)) {
+//				System.out.println("Key > " + key + " > " + operation);
 				map.remove(key);
 				return;
 			}
 		}
+//		System.out.println("Key > " + key);
 
 		map.put(key, entry);
 		
