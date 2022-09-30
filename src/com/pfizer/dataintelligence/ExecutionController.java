@@ -33,24 +33,28 @@ public class ExecutionController {
 			CSVEntry targetEntry = target.get(sourceKey);
 			
 			if(sourceEntry != null && targetEntry == null) {
-				System.out.println("Not found in target .. > " + sourceEntry.getKeysConcatenated());
 				unmatchedEntries.add(sourceEntry);
-			} else if(!sourceEntry.compare(targetEntry)) {
-				System.out.println("Not matched .. > " + sourceKey);
-				unmatchedEntries.add(sourceEntry);
-				target.remove(sourceKey);
-			} else {
-				//System.out.println("Matched .. > " + sourceKey);
-				matchedEntries.add(sourceEntry);
-				target.remove(sourceKey);
+			} 
+			
+			if(sourceEntry != null && targetEntry != null) {
+				try {
+					if(sourceEntry.compare(targetEntry)) {
+						matchedEntries.add(sourceEntry);
+					}
+				} catch(Exception e) {
+					System.out.println("Not matched for key (" + sourceKey + ") > " + e.getMessage());
+					unmatchedEntries.add(sourceEntry);				
+				} finally {
+					target.remove(sourceKey);
+				}
 			}
 		}
-
+		
+		System.out.println("Number of entries in target and not found in source > " + target.entrySet().size());
 		for (Iterator<Map.Entry<String, CSVEntry>> iterator = target.entrySet().iterator(); iterator.hasNext();) {
 			Map.Entry<String, CSVEntry> targetMapEntry = iterator.next();
 			String sourceKey = targetMapEntry.getKey();
 			CSVEntry targetEntry = targetMapEntry.getValue();			
-			System.out.println("Additional entries in target .. > " + targetEntry.getKeysConcatenated());
 			unmatchedEntries.add(targetEntry);
 		}
 		
